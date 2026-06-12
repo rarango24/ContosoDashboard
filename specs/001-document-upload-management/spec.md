@@ -5,6 +5,12 @@
 **Status**: Draft  
 **Input**: StakeholderDocs/document-upload-and-management-feature.md
 
+## Clarifications
+
+### Session 2026-06-11
+
+- Q: What actions can Administrators perform on documents? → A: Admins can view, download, and delete any document; editing metadata belongs to the owner/PM only.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Upload a Document (Priority: P1)
@@ -117,7 +123,8 @@ A document owner shares a document with one or more specific users. The recipien
 - **FR-009**: System MUST provide full-text search across title, description, tags, uploader name, and associated project, returning results within 2 seconds.
 - **FR-010**: Search results and document listings MUST only show documents the requesting user is authorized to view.
 - **FR-011**: System MUST allow document owners and authorized managers to edit document metadata (title, description, category, tags) and replace the document file.
-- **FR-012**: System MUST allow document owners and Project Managers to permanently delete documents after explicit confirmation.
+- **FR-012**: System MUST allow document owners and Project Managers to permanently delete documents after explicit confirmation. Administrators MUST also be able to delete any document for audit and compliance purposes.
+- **FR-012a**: Administrators MUST be able to view and download any document across all users. Administrators MUST NOT be able to edit document metadata (title, description, category, tags) — metadata editing is restricted to the document owner and Project Managers.
 - **FR-013**: System MUST allow document owners to share documents with specific users; recipients MUST receive an in-app notification.
 - **FR-014**: System MUST display a "Shared with Me" section showing documents explicitly shared with the current user.
 - **FR-015**: System MUST display project documents to all project team members when viewing a project; Project Managers MUST be able to upload documents from the project view.
