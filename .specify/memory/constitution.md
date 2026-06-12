@@ -1,50 +1,86 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT
+==================
+Version change: [unversioned template] → 1.0.0
+Modified principles: N/A (initial ratification)
+Added sections: Core Principles (5), Security Requirements, Development Workflow, Governance
+Removed sections: N/A
+Templates requiring updates:
+  - .specify/templates/plan-template.md ✅ (Constitution Check section references principles)
+  - .specify/templates/spec-template.md ✅ (no changes required)
+  - .specify/templates/tasks-template.md ✅ (no changes required)
+Follow-up TODOs: none
+-->
+
+# ContosoDashboard Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Spec-Driven Development (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Every feature or change MUST begin with a written specification before any implementation work starts.
+Specifications are stored in `specs/[###-feature-name]/` and MUST include: user stories with acceptance
+scenarios, a plan, and a task list. Skipping specification to save time is not permitted. The spec is
+the contract between stakeholders and developers.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Training-Context Simplicity
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+ContosoDashboard is a training project. All implementation decisions MUST favor clarity and
+learnability over production-grade complexity. Code MUST demonstrate good practices in a simplified
+form. Dependencies on external cloud services, paid APIs, or infrastructure not available offline are
+PROHIBITED. The system MUST remain runnable in an offline environment.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Security-Aware Design (Defense in Depth)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Even in a training context, security practices MUST be demonstrated correctly.
+Every protected page MUST carry `[Authorize]` attributes. Service-level authorization checks MUST
+be present to prevent IDOR vulnerabilities. Security headers (CSP, X-Frame-Options, etc.) MUST be
+applied. The mock authentication system is permitted ONLY because this is a training project; any
+real deployment MUST replace it with a proper identity provider (Azure AD, Auth0, or equivalent).
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Service-Layer Isolation
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Business logic MUST reside in the `Services/` layer. Razor components and pages MUST NOT contain
+business logic or direct data-access code. Each service class MUST have a single, clearly named
+responsibility (e.g., `TaskService`, `ProjectService`). This separation ensures testability and
+mirrors production-grade architectural patterns appropriate for training audiences.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Incremental, Story-Driven Delivery
+
+Features MUST be broken into independently testable user stories (P1, P2, P3…). Each story MUST
+be implementable, testable, and demonstrable in isolation without requiring other stories to be
+complete. Tasks MUST be organized by user story so any story can serve as an MVP increment.
+Gold-plating and scope expansion beyond specified stories are prohibited.
+
+## Security Requirements
+
+- Authentication: Cookie-based with 8-hour sliding expiration (training only; production requires OAuth 2.0 / OIDC).
+- Authorization: `[Authorize]` on all protected Razor pages; role-based access control (RBAC) enforced at both
+  page and service level.
+- IDOR protection: Service methods MUST validate that the requesting user has rights to the requested resource.
+- Security headers: CSP, `X-Frame-Options`, `X-XSS-Protection` MUST be configured in middleware.
+- No secrets or credentials committed to source control.
+- Known limitation: No password hashing, MFA, or audit logging — documented in README as training-only gaps.
+
+## Development Workflow
+
+- All feature work starts with `/speckit.specify` → `/speckit.plan` → `/speckit.tasks` before any code is written.
+- Pull requests MUST reference the feature spec (`specs/[###-feature-name]/spec.md`).
+- Constitution Check in `plan.md` MUST be completed before Phase 0 research begins.
+- Agent context file (`.github/copilot-instructions.md` or equivalent) MUST be refreshed after constitution
+  amendments using the `speckit.agent-context.update` extension hook.
+- Commit messages MUST follow Conventional Commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other documented practices. Amendments require:
+1. A clear rationale explaining why the change improves training value or correctness.
+2. Version bump following semantic versioning (MAJOR for principle removals/redefinitions,
+   MINOR for new principles or sections, PATCH for clarifications and wording).
+3. An update to `LAST_AMENDED_DATE` and increment of `CONSTITUTION_VERSION`.
+4. Propagation review of all `.specify/templates/` files and agent context files.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+All feature plans MUST include a Constitution Check gate referencing the five Core Principles.
+Complexity MUST be justified against Principle II (Training-Context Simplicity) before introduction.
+
+**Version**: 1.0.0 | **Ratified**: 2026-06-11 | **Last Amended**: 2026-06-11
