@@ -1,0 +1,29 @@
+version: '3.9'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: contoso-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Contoso123!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+  contosodashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: contosodashboard
+    depends_on:
+      - sqlserver
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ContosoDashboard;User Id=sa;Password=Contoso123!;TrustServerCertificate=True;Encrypt=False"
+    ports:
+      - "8080:8080"
+
+volumes:
+  sqlserver_data:

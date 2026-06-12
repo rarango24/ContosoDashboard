@@ -1,0 +1,11 @@
+.git
+.gitignore
+
+.vscode
+
+**/bin
+**/obj
+
+**/.vs
+
+README.md
