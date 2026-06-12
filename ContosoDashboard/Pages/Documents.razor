@@ -1,0 +1,247 @@
+@page "/documents"
+@attribute [Authorize]
+@inject IDocumentService DocumentService
+@inject IProjectService ProjectService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IUserService UserService
+
+<PageTitle>Documents - ContosoDashboard</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1><i class="bi bi-folder2-open me-2"></i>Documents</h1>
+        </div>
+        <div class="col-auto">
+            <a href="/documents/upload" class="btn btn-primary">
+                <i class="bi bi-cloud-upload me-1"></i> Upload Document
+            </a>
+        </div>
+    </div>
+
+    @if (!isLoaded)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading&hellip;</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Search and Filters -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Search</label>
+                        <input type="text" class="form-control" placeholder="Title, description, tags&hellip;"
+                               @bind="searchTerm" @bind:event="oninput" @onkeyup="ApplyFilters" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Category</label>
+                        <select class="form-select" @bind="categoryFilter" @bind:after="ApplyFilters">
+                            <option value="">All Categories</option>
+                            @foreach (var cat in Enum.GetValues<DocumentCategory>())
+                            {
+                                <option value="@cat">@FormatCategory(cat)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">From</label>
+                        <input type="date" class="form-control" @bind="fromDate" @bind:after="ApplyFilters" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">To</label>
+                        <input type="date" class="form-control" @bind="toDate" @bind:after="ApplyFilters" />
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Table -->
+        @if (!filteredDocuments.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-folder2 display-4"></i>
+                <p class="mt-3">No documents found.</p>
+                <a href="/documents/upload" class="btn btn-outline-primary mt-2">Upload your first document</a>
+            </div>
+        }
+        else
+        {
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th @onclick='() => Sort("Title")' style="cursor:pointer">
+                                    Title @SortIcon("Title")
+                                </th>
+                                <th @onclick='() => Sort("Category")' style="cursor:pointer">
+                                    Category @SortIcon("Category")
+                                </th>
+                                <th @onclick='() => Sort("UploadedAt")' style="cursor:pointer">
+                                    Upload Date @SortIcon("UploadedAt")
+                                </th>
+                                <th @onclick='() => Sort("FileSizeBytes")' style="cursor:pointer">
+                                    Size @SortIcon("FileSizeBytes")
+                                </th>
+                                <th>Project</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var doc in filteredDocuments)
+                            {
+                                <tr>
+                                    <td>
+                                        <a href="/documents/@doc.DocumentId" class="text-decoration-none fw-semibold">
+                                            <i class="bi @FileIcon(doc.MimeType) me-1 text-muted"></i>
+                                            @doc.Title
+                                        </a>
+                                    </td>
+                                    <td><span class="badge bg-secondary">@FormatCategory(doc.Category)</span></td>
+                                    <td>@doc.UploadedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
+                                    <td>@FormatFileSize(doc.FileSizeBytes)</td>
+                                    <td>@(doc.Project?.Name ?? "—")</td>
+                                    <td>
+                                        <a href="/documents/download/@doc.DocumentId" class="btn btn-sm btn-outline-primary me-1" target="_blank">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        @if (IsPreviewable(doc.MimeType))
+                                        {
+                                            <a href="/documents/download/@doc.DocumentId?inline=true" class="btn btn-sm btn-outline-secondary me-1" target="_blank">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        }
+                                        <a href="/documents/@doc.DocumentId" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-three-dots"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer text-muted small">
+                    Showing @filteredDocuments.Count of @allDocuments.Count document(s)
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool isLoaded;
+    private int currentUserId;
+    private List<Document> allDocuments = new();
+    private List<Document> filteredDocuments = new();
+
+    private string searchTerm = string.Empty;
+    private string categoryFilter = string.Empty;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private string sortColumn = "UploadedAt";
+    private bool sortDesc = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var emailClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        if (!string.IsNullOrEmpty(emailClaim))
+        {
+            var user = await UserService.GetUserByEmailAsync(emailClaim);
+            if (user != null)
+                currentUserId = user.UserId;
+        }
+
+        await LoadDocuments();
+        isLoaded = true;
+    }
+
+    private async Task LoadDocuments()
+    {
+        var docs = await DocumentService.GetMyDocumentsAsync(
+            userId: currentUserId,
+            searchTerm: string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+            categoryFilter: Enum.TryParse<DocumentCategory>(categoryFilter, out var cat) ? cat : null,
+            fromDate: fromDate,
+            toDate: toDate,
+            sortBy: sortColumn,
+            sortDesc: sortDesc);
+
+        allDocuments = docs.ToList();
+        filteredDocuments = allDocuments.ToList();
+    }
+
+    private async Task ApplyFilters()
+    {
+        await LoadDocuments();
+    }
+
+    private void Sort(string column)
+    {
+        if (sortColumn == column)
+            sortDesc = !sortDesc;
+        else
+        {
+            sortColumn = column;
+            sortDesc = true;
+        }
+        _ = LoadDocuments();
+    }
+
+    private void ClearFilters()
+    {
+        searchTerm = string.Empty;
+        categoryFilter = string.Empty;
+        fromDate = null;
+        toDate = null;
+        _ = LoadDocuments();
+    }
+
+    private MarkupString SortIcon(string column)
+    {
+        if (sortColumn != column) return (MarkupString)"";
+        return (MarkupString)(sortDesc
+            ? "<i class=\"bi bi-sort-down ms-1\"></i>"
+            : "<i class=\"bi bi-sort-up ms-1\"></i>");
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes >= 1_048_576) return $"{bytes / 1_048_576.0:F1} MB";
+        if (bytes >= 1_024) return $"{bytes / 1_024.0:F0} KB";
+        return $"{bytes} B";
+    }
+
+    private static string FormatCategory(DocumentCategory cat) => cat switch
+    {
+        DocumentCategory.ProjectDocuments => "Project Documents",
+        DocumentCategory.TeamResources    => "Team Resources",
+        DocumentCategory.PersonalFiles    => "Personal Files",
+        DocumentCategory.Reports          => "Reports",
+        DocumentCategory.Presentations    => "Presentations",
+        _                                 => "Other"
+    };
+
+    private static bool IsPreviewable(string mimeType) =>
+        mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
+        mimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+
+    private static string FileIcon(string mimeType) => mimeType switch
+    {
+        "application/pdf"                                                                  => "bi-file-earmark-pdf text-danger",
+        "image/jpeg" or "image/png"                                                        => "bi-file-earmark-image text-info",
+        "text/plain"                                                                       => "bi-file-earmark-text",
+        var m when m.Contains("word")                                                      => "bi-file-earmark-word text-primary",
+        var m when m.Contains("excel") || m.Contains("spreadsheet")                       => "bi-file-earmark-excel text-success",
+        var m when m.Contains("powerpoint") || m.Contains("presentation")                 => "bi-file-earmark-ppt text-warning",
+        _                                                                                  => "bi-file-earmark"
+    };
+}

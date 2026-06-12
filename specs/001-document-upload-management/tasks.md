@@ -23,11 +23,11 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Add NuGet packages and configure application infrastructure needed by all stories.
 
-- [ ] T001 Add `Microsoft.AspNetCore.Mvc` controllers support and register `DocumentsController` route in `ContosoDashboard/Program.cs` (add `builder.Services.AddControllersWithViews()` and `app.MapControllers()`)
-- [ ] T002 [P] Register `IFileStorageService` → `LocalFileStorageService` and `IFileScanner` → `StubFileScanner` in `ContosoDashboard/Program.cs` DI container
-- [ ] T003 [P] Register `DocumentService` in `ContosoDashboard/Program.cs` DI container
-- [ ] T004 [P] Create `ContosoDashboard/AppData/uploads/` directory and add a `.gitkeep` file; add `ContosoDashboard/AppData/uploads/` to `.gitignore`
-- [ ] T005 [P] Configure `HubOptions` in `ContosoDashboard/Program.cs` to set `MaximumReceiveMessageSize` to 33,554,432 bytes (32 MB) for Blazor Server SignalR
+- [X] T001 Add `Microsoft.AspNetCore.Mvc` controllers support and register `DocumentsController` route in `ContosoDashboard/Program.cs` (add `builder.Services.AddControllersWithViews()` and `app.MapControllers()`)
+- [X] T002 [P] Register `IFileStorageService` → `LocalFileStorageService` and `IFileScanner` → `StubFileScanner` in `ContosoDashboard/Program.cs` DI container
+- [X] T003 [P] Register `DocumentService` in `ContosoDashboard/Program.cs` DI container
+- [X] T004 [P] Create `ContosoDashboard/AppData/uploads/` directory and add a `.gitkeep` file; add `ContosoDashboard/AppData/uploads/` to `.gitignore`
+- [X] T005 [P] Configure `HubOptions` in `ContosoDashboard/Program.cs` to set `MaximumReceiveMessageSize` to 33,554,432 bytes (32 MB) for Blazor Server SignalR
 
 **Checkpoint**: Program.cs updated; DI registrations in place; upload directory exists.
 
@@ -37,14 +37,14 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Core models, DB schema, and service abstractions that every user story depends on. No story work begins until this phase is complete.
 
-- [ ] T006 Create `ContosoDashboard/Models/Document.cs` — `Document` entity per data-model.md (all fields: DocumentId, Title, Description, Category, Tags, ProjectId?, TaskId?, FileName, StoredFilePath, FileSizeBytes, MimeType, UploadedByUserId, UploadedAt, UpdatedAt, VersionNote?, IsDeleted; navigation properties)
-- [ ] T007 [P] Create `ContosoDashboard/Models/DocumentShare.cs` — `DocumentShare` entity per data-model.md (DocumentShareId, DocumentId, SharedByUserId, SharedWithUserId, SharedAt; navigation properties)
-- [ ] T008 [P] Add `DocumentCategory` enum to `ContosoDashboard/Models/Document.cs` (ProjectDocuments, TeamResources, PersonalFiles, Reports, Presentations, Other)
-- [ ] T009 Modify `ContosoDashboard/Data/ApplicationDbContext.cs` — add `DbSet<Document> Documents` and `DbSet<DocumentShare> DocumentShares`; configure relationships (Document→User, Document→Project?, Document→TaskItem?, DocumentShare→Document, DocumentShare→SharedByUser, DocumentShare→SharedWithUser); add all indexes from data-model.md; add `OnDelete(DeleteBehavior.Restrict)` for user FK references
-- [ ] T010 Create EF Core migration `AddDocumentEntities` by running `dotnet ef migrations add AddDocumentEntities --project ContosoDashboard`
-- [ ] T011 [P] Create `ContosoDashboard/Services/IFileStorageService.cs` — interface with methods: `Task<string> UploadAsync(int userId, int? projectId, Stream content, string extension)`, `Task DeleteAsync(string storedRelativePath)`, `string GetAbsolutePath(string storedRelativePath)`
-- [ ] T012 [P] Create `ContosoDashboard/Services/LocalFileStorageService.cs` — implement `IFileStorageService`; generate path as `{userId}/{projectId ?? "personal"}/{Guid.NewGuid()}.{extension}`; write stream to `ContosoDashboard/AppData/uploads/{path}`; implement `DeleteAsync` and `GetAbsolutePath`; inject `IWebHostEnvironment` to resolve root
-- [ ] T013 [P] Create `ContosoDashboard/Services/IFileScanner.cs` — interface: `Task<bool> ScanAsync(Stream content)` (true = clean); create `StubFileScanner.cs` in same folder that always returns `true`; add a code comment documenting the production `ClamAvScanner` path
+- [X] T006 Create `ContosoDashboard/Models/Document.cs` — `Document` entity per data-model.md (all fields: DocumentId, Title, Description, Category, Tags, ProjectId?, TaskId?, FileName, StoredFilePath, FileSizeBytes, MimeType, UploadedByUserId, UploadedAt, UpdatedAt, VersionNote?, IsDeleted; navigation properties)
+- [X] T007 [P] Create `ContosoDashboard/Models/DocumentShare.cs` — `DocumentShare` entity per data-model.md (DocumentShareId, DocumentId, SharedByUserId, SharedWithUserId, SharedAt; navigation properties)
+- [X] T008 [P] Add `DocumentCategory` enum to `ContosoDashboard/Models/Document.cs` (ProjectDocuments, TeamResources, PersonalFiles, Reports, Presentations, Other)
+- [X] T009 Modify `ContosoDashboard/Data/ApplicationDbContext.cs` — add `DbSet<Document> Documents` and `DbSet<DocumentShare> DocumentShares`; configure relationships (Document→User, Document→Project?, Document→TaskItem?, DocumentShare→Document, DocumentShare→SharedByUser, DocumentShare→SharedWithUser); add all indexes from data-model.md; add `OnDelete(DeleteBehavior.Restrict)` for user FK references
+- [X] T010 Create EF Core migration `AddDocumentEntities` by running `dotnet ef migrations add AddDocumentEntities --project ContosoDashboard`
+- [X] T011 [P] Create `ContosoDashboard/Services/IFileStorageService.cs` — interface with methods: `Task<string> UploadAsync(int userId, int? projectId, Stream content, string extension)`, `Task DeleteAsync(string storedRelativePath)`, `string GetAbsolutePath(string storedRelativePath)`
+- [X] T012 [P] Create `ContosoDashboard/Services/LocalFileStorageService.cs` — implement `IFileStorageService`; generate path as `{userId}/{projectId ?? "personal"}/{Guid.NewGuid()}.{extension}`; write stream to `ContosoDashboard/AppData/uploads/{path}`; implement `DeleteAsync` and `GetAbsolutePath`; inject `IWebHostEnvironment` to resolve root
+- [X] T013 [P] Create `ContosoDashboard/Services/IFileScanner.cs` — interface: `Task<bool> ScanAsync(Stream content)` (true = clean); create `StubFileScanner.cs` in same folder that always returns `true`; add a code comment documenting the production `ClamAvScanner` path
 
 **Checkpoint**: Entities, migrations, and service interfaces ready. `dotnet build` must pass.
 
@@ -56,10 +56,10 @@ description: "Task list template for feature implementation"
 
 **Independent Test**: Use quickstart.md Scenario 1 — upload a valid PDF, verify it appears in My Documents; upload invalid type/size/missing title, verify rejections.
 
-- [ ] T014 [US1] Create `ContosoDashboard/Services/DocumentService.cs` with method `UploadDocumentAsync(int uploadedByUserId, string title, string? description, DocumentCategory category, string? tags, int? projectId, int? taskId, IBrowserFile file)` — validate file extension against whitelist, validate size ≤ 25 MB, call `IFileScanner.ScanAsync`, call `IFileStorageService.UploadAsync` to store file, save `Document` record via `ApplicationDbContext`, return created `Document`
-- [ ] T015 [P] [US1] Add `GetAllowedMimeTypes()` and `GetAllowedExtensions()` static helpers to `ContosoDashboard/Services/DocumentService.cs` — whitelist from data-model.md validation rules
-- [ ] T016 [US1] Create `ContosoDashboard/Pages/DocumentUpload.razor` — `[Authorize]` page at route `/documents/upload`; `InputFile` component (multi-file disabled for simplicity, single file per upload); Title (required), Description (optional), Category dropdown (required, bound to `DocumentCategory` enum), Project dropdown (optional, loaded from `ProjectService`), Tags (optional text input); submit calls `DocumentService.UploadDocumentAsync`; show progress indicator using `IBrowserFile` stream; show success or error message after upload
-- [ ] T017 [US1] Add "Documents" link to `ContosoDashboard/Shared/NavMenu.razor` pointing to `/documents`
+- [X] T014 [US1] Create `ContosoDashboard/Services/DocumentService.cs` with method `UploadDocumentAsync(int uploadedByUserId, string title, string? description, DocumentCategory category, string? tags, int? projectId, int? taskId, IBrowserFile file)` — validate file extension against whitelist, validate size ≤ 25 MB, call `IFileScanner.ScanAsync`, call `IFileStorageService.UploadAsync` to store file, save `Document` record via `ApplicationDbContext`, return created `Document`
+- [X] T015 [P] [US1] Add `GetAllowedMimeTypes()` and `GetAllowedExtensions()` static helpers to `ContosoDashboard/Services/DocumentService.cs` — whitelist from data-model.md validation rules
+- [X] T016 [US1] Create `ContosoDashboard/Pages/DocumentUpload.razor` — `[Authorize]` page at route `/documents/upload`; `InputFile` component (multi-file disabled for simplicity, single file per upload); Title (required), Description (optional), Category dropdown (required, bound to `DocumentCategory` enum), Project dropdown (optional, loaded from `ProjectService`), Tags (optional text input); submit calls `DocumentService.UploadDocumentAsync`; show progress indicator using `IBrowserFile` stream; show success or error message after upload
+- [X] T017 [US1] Add "Documents" link to `ContosoDashboard/Shared/NavMenu.razor` pointing to `/documents`
 
 **Checkpoint**: US1 fully functional. User can upload a valid document; invalid files are rejected with clear errors. Verify with quickstart.md Scenario 1.
 
@@ -71,9 +71,9 @@ description: "Task list template for feature implementation"
 
 **Independent Test**: Use quickstart.md Scenario 2 — upload 3+ docs with varied categories, verify sort/filter/search return correct subsets within 2 seconds.
 
-- [ ] T018 [US2] Add to `ContosoDashboard/Services/DocumentService.cs`: method `GetMyDocumentsAsync(int userId, string? searchTerm, DocumentCategory? categoryFilter, int? projectFilter, DateTime? fromDate, DateTime? toDate, string sortBy, bool sortDesc)` — queries `Document` records for `UploadedByUserId == userId` and `IsDeleted == false`; applies filters and sort; returns `IEnumerable<Document>` with navigation properties loaded
-- [ ] T019 [US2] Create `ContosoDashboard/Pages/Documents.razor` — `[Authorize]` page at route `/documents`; shows tabbed view with "My Documents" tab (default); table columns: Title, Category, Upload Date, File Size, Project; sort on column header click; filter controls (Category dropdown, Project dropdown, Date Range pickers); search input field; results update on filter/search change; each row has Download and Preview action links
-- [ ] T020 [P] [US2] Add `FormatFileSize(long bytes)` display helper in `ContosoDashboard/Pages/Documents.razor` (or a shared utility) to render file size as KB/MB
+- [X] T018 [US2] Add to `ContosoDashboard/Services/DocumentService.cs`: method `GetMyDocumentsAsync(int userId, string? searchTerm, DocumentCategory? categoryFilter, int? projectFilter, DateTime? fromDate, DateTime? toDate, string sortBy, bool sortDesc)` — queries `Document` records for `UploadedByUserId == userId` and `IsDeleted == false`; applies filters and sort; returns `IEnumerable<Document>` with navigation properties loaded
+- [X] T019 [US2] Create `ContosoDashboard/Pages/Documents.razor` — `[Authorize]` page at route `/documents`; shows tabbed view with "My Documents" tab (default); table columns: Title, Category, Upload Date, File Size, Project; sort on column header click; filter controls (Category dropdown, Project dropdown, Date Range pickers); search input field; results update on filter/search change; each row has Download and Preview action links
+- [X] T020 [P] [US2] Add `FormatFileSize(long bytes)` display helper in `ContosoDashboard/Pages/Documents.razor` (or a shared utility) to render file size as KB/MB
 
 **Checkpoint**: US2 fully functional. My Documents view shows, sorts, filters, and searches correctly. Verify with quickstart.md Scenario 2.
 

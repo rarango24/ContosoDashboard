@@ -8,7 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder.Services.AddControllersWithViews(); // T001: MVC controllers for DocumentsController
+builder.Services.AddServerSideBlazor()
+    .AddHubOptions(options =>
+    {
+        // T005: Increase SignalR message size to support 25 MB file uploads in Blazor Server
+        options.MaximumReceiveMessageSize = 33_554_432; // 32 MB
+    });
 
 // Add authentication state provider for Blazor
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
@@ -39,6 +45,11 @@ builder.Services.AddAuthorization(options =>
 
 // Register application services
 builder.Services.AddScoped<IUserService, UserService>();
+// T002: File storage and virus scanner abstractions
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<IFileScanner, StubFileScanner>();
+// T003: Document business logic service
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
@@ -106,6 +117,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapBlazorHub();
+app.MapControllers(); // T001: Map MVC controller routes
 app.MapFallbackToPage("/_Host");
 
 app.Run();

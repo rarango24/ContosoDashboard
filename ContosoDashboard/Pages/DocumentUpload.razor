@@ -1,0 +1,279 @@
+@page "/documents/upload"
+@attribute [Authorize]
+@inject IDocumentService DocumentService
+@inject IProjectService ProjectService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>Upload Document - ContosoDashboard</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/documents">Documents</a></li>
+                    <li class="breadcrumb-item active">Upload</li>
+                </ol>
+            </nav>
+            <h1>Upload Document</h1>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+        </div>
+    }
+
+    @if (uploadSuccess)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            Document uploaded successfully!
+            <a href="/documents" class="alert-link ms-2">View My Documents</a>
+            <button type="button" class="btn-close" @onclick="() => uploadSuccess = false"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-cloud-upload me-2"></i>Select and Upload File
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@uploadModel" OnValidSubmit="HandleUpload">
+                        <DataAnnotationsValidator />
+
+                        <!-- File Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">File <span class="text-danger">*</span></label>
+                            <InputFile class="form-control" OnChange="HandleFileSelected" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" />
+                            <div class="form-text">
+                                Supported: PDF, Word, Excel, PowerPoint, Text, JPEG, PNG &mdash; Max 25 MB
+                            </div>
+                            @if (selectedFile != null)
+                            {
+                                <div class="mt-2 text-muted small">
+                                    <i class="bi bi-file-earmark me-1"></i>
+                                    @selectedFile.Name (@FormatFileSize(selectedFile.Size))
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Title -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+                            <InputText class="form-control" @bind-Value="uploadModel.Title" placeholder="Document title" maxlength="255" />
+                            <ValidationMessage For="@(() => uploadModel.Title)" />
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <InputTextArea class="form-control" @bind-Value="uploadModel.Description" rows="3" placeholder="Optional description" maxlength="2000" />
+                        </div>
+
+                        <!-- Category -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                            <InputSelect class="form-select" @bind-Value="uploadModel.Category">
+                                <option value="">-- Select category --</option>
+                                @foreach (var cat in Enum.GetValues<DocumentCategory>())
+                                {
+                                    <option value="@cat">@FormatCategory(cat)</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => uploadModel.Category)" />
+                        </div>
+
+                        <!-- Project -->
+                        <div class="mb-3">
+                            <label class="form-label">Project (optional)</label>
+                            <InputSelect class="form-select" @bind-Value="uploadModel.ProjectId">
+                                <option value="">-- None --</option>
+                                @foreach (var project in userProjects)
+                                {
+                                    <option value="@project.ProjectId">@project.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <!-- Tags -->
+                        <div class="mb-4">
+                            <label class="form-label">Tags (optional)</label>
+                            <InputText class="form-control" @bind-Value="uploadModel.Tags" placeholder="e.g. quarterly, finance" maxlength="500" />
+                            <div class="form-text">Comma-separated tags for easier searching.</div>
+                        </div>
+
+                        <!-- Progress -->
+                        @if (isUploading)
+                        {
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center gap-2 text-primary">
+                                    <div class="spinner-border spinner-border-sm" role="status" aria-label="Uploading"></div>
+                                    <span>Uploading, please wait&hellip;</span>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@(isUploading || selectedFile == null)">
+                                <i class="bi bi-cloud-upload me-1"></i> Upload
+                            </button>
+                            <a href="/documents" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? ProjectId { get; set; }
+
+    private UploadFormModel uploadModel = new();
+    private IBrowserFile? selectedFile;
+    private bool isUploading;
+    private bool uploadSuccess;
+    private string? errorMessage;
+    private List<Project> userProjects = new();
+    private int currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var emailClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        if (!string.IsNullOrEmpty(emailClaim))
+        {
+            var userService = (IUserService)UserService;
+            var user = await userService.GetUserByEmailAsync(emailClaim);
+            if (user != null)
+            {
+                currentUserId = user.UserId;
+                userProjects = await ProjectService.GetUserProjectsAsync(currentUserId);
+            }
+        }
+
+        // Pre-fill project from query param (e.g. when navigated from ProjectDetails)
+        if (ProjectId.HasValue)
+        {
+            uploadModel.ProjectId = ProjectId;
+        }
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        errorMessage = null;
+
+        // Client-side size pre-check
+        if (selectedFile.Size > 25L * 1024 * 1024)
+        {
+            errorMessage = $"File '{selectedFile.Name}' is too large ({FormatFileSize(selectedFile.Size)}). Maximum allowed size is 25 MB.";
+            selectedFile = null;
+        }
+    }
+
+    private async Task HandleUpload()
+    {
+        if (selectedFile == null)
+        {
+            errorMessage = "Please select a file to upload.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(uploadModel.Title))
+        {
+            errorMessage = "Document title is required.";
+            return;
+        }
+
+        if (uploadModel.Category == null)
+        {
+            errorMessage = "Please select a category.";
+            return;
+        }
+
+        isUploading = true;
+        errorMessage = null;
+        uploadSuccess = false;
+
+        try
+        {
+            await DocumentService.UploadDocumentAsync(
+                uploadedByUserId: currentUserId,
+                title: uploadModel.Title,
+                description: uploadModel.Description,
+                category: uploadModel.Category!.Value,
+                tags: uploadModel.Tags,
+                projectId: uploadModel.ProjectId,
+                taskId: null,
+                file: selectedFile);
+
+            uploadSuccess = true;
+            uploadModel = new UploadFormModel { ProjectId = ProjectId };
+            selectedFile = null;
+
+            // Re-pre-fill project if it came from query param
+            if (ProjectId.HasValue)
+                uploadModel.ProjectId = ProjectId;
+        }
+        catch (InvalidOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        catch (Exception)
+        {
+            errorMessage = "An unexpected error occurred during upload. Please try again.";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes >= 1_048_576) return $"{bytes / 1_048_576.0:F1} MB";
+        if (bytes >= 1_024) return $"{bytes / 1_024.0:F0} KB";
+        return $"{bytes} B";
+    }
+
+    private static string FormatCategory(DocumentCategory cat) => cat switch
+    {
+        DocumentCategory.ProjectDocuments => "Project Documents",
+        DocumentCategory.TeamResources    => "Team Resources",
+        DocumentCategory.PersonalFiles    => "Personal Files",
+        DocumentCategory.Reports          => "Reports",
+        DocumentCategory.Presentations    => "Presentations",
+        _                                 => "Other"
+    };
+
+    private class UploadFormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Title is required.")]
+        [System.ComponentModel.DataAnnotations.MaxLength(255)]
+        public string Title { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.MaxLength(2000)]
+        public string? Description { get; set; }
+
+        public DocumentCategory? Category { get; set; }
+
+        [System.ComponentModel.DataAnnotations.MaxLength(500)]
+        public string? Tags { get; set; }
+
+        public int? ProjectId { get; set; }
+    }
+}
